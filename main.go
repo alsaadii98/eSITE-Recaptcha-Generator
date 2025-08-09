@@ -64,16 +64,21 @@ func main() {
 		"version.codename": "REL",
 	}
 
-	jsonData, err := json.Marshal(data)
+	prettyJSON, err := json.MarshalIndent(data, "", "  ")
 	if err != nil {
 		panic(err)
 	}
 
-	encrypted, err := encryptAES(jsonData, aesKey)
+	encrypted, err := encryptAES(prettyJSON, aesKey)
 	if err != nil {
 		panic(err)
 	}
 
-	fmt.Println("Encrypted Base64:")
+	fmt.Println("──────────────────────────────────────────────")
+	fmt.Println("Encrypted Data (Base64):")
+	fmt.Println("──────────────────────────────────────────────")
 	fmt.Println(encrypted)
+	fmt.Println("──────────────────────────────────────────────")
+	fmt.Println("Copy the above Base64 string for use.")
+	fmt.Println("──────────────────────────────────────────────")
 }
