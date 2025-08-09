@@ -4,18 +4,19 @@ import (
 	"bytes"
 	"crypto/aes"
 	"crypto/cipher"
-	"crypto/rand"
 	"encoding/base64"
 	"encoding/json"
 	"fmt"
-	"io"
 	"time"
 
 	"github.com/google/uuid"
 )
 
 var (
+	// AES key (decoded from Java Base64 string)
 	aesKey, _ = base64.StdEncoding.DecodeString("szqC6Qw5k7o2ztNcJsiDBbT+bKqHRF8kUCSVbjw3QKA=")
+	// IV (decoded from Java Base64 string)
+	iv, _ = base64.StdEncoding.DecodeString("+u2aDBSnkxq7ESAcy433JA==")
 )
 
 func pkcs5Padding(data []byte, blockSize int) []byte {
@@ -24,39 +25,32 @@ func pkcs5Padding(data []byte, blockSize int) []byte {
 	return append(data, padding...)
 }
 
-func encryptAES(plaintext []byte, key []byte) (string, error) {
+func encryptAES(plaintext []byte, key []byte, iv []byte) (string, error) {
 	block, err := aes.NewCipher(key)
 	if err != nil {
 		return "", err
 	}
-
-	iv := make([]byte, block.BlockSize())
-	if _, err := io.ReadFull(rand.Reader, iv); err != nil {
-		return "", err
-	}
-
 	padded := pkcs5Padding(plaintext, block.BlockSize())
 
 	ciphertext := make([]byte, len(padded))
 	mode := cipher.NewCBCEncrypter(block, iv)
 	mode.CryptBlocks(ciphertext, padded)
 
-	finalData := append(iv, ciphertext...)
-	return base64.StdEncoding.EncodeToString(finalData), nil
+	return base64.StdEncoding.EncodeToString(ciphertext), nil
 }
 
 func main() {
 	data := map[string]interface{}{
-		"id":               "UE1A." + time.Now().Format("060102.150405"), // dynamic id with date-time
+		"id":               "UE1A.230829.036.A4",
 		"type":             "user",
-		"brand":            "ali",
+		"brand":            "Google Pixel",
 		"model":            "sdk_gphone64_x86_64",
-		"nonce":            uuid.New().String(), // new UUID each run
+		"nonce":            uuid.New().String(),
 		"device":           "emu64xa",
-		"display":          "UE1A." + time.Now().Format("060102.150405"),
+		"display":          "UE1A.230829.036.A4",
 		"product":          "sdk_gphone64_x86_64",
 		"platform":         "android",
-		"timestamp":        fmt.Sprintf("%d", time.Now().UnixMilli()), // current timestamp in ms
+		"timestamp":        fmt.Sprintf("%d", time.Now().UnixMilli()),
 		"manufacturer":     "Google",
 		"serialNumber":     "unknown",
 		"version.baseOS":   "",
@@ -64,21 +58,22 @@ func main() {
 		"version.codename": "REL",
 	}
 
-	prettyJSON, err := json.MarshalIndent(data, "", "  ")
+	// Marshal to JSON
+	jsonData, err := json.Marshal(data)
 	if err != nil {
 		panic(err)
 	}
 
-	encrypted, err := encryptAES(prettyJSON, aesKey)
+	// Encrypt
+	encrypted, err := encryptAES(jsonData, aesKey, iv)
 	if err != nil {
 		panic(err)
 	}
 
 	fmt.Println("──────────────────────────────────────────────")
 	fmt.Println("Encrypted Data (Base64):")
+	fmt.Println("This value is generated to bypass the reCAPTCHA in the 'eSITE-Authentication-MicroService'")
 	fmt.Println("──────────────────────────────────────────────")
 	fmt.Println(encrypted)
-	fmt.Println("──────────────────────────────────────────────")
-	fmt.Println("Copy the above Base64 string for use.")
 	fmt.Println("──────────────────────────────────────────────")
 }
